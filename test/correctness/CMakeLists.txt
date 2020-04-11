@@ -117,6 +117,7 @@ tests(GROUPS correctness travis
         gpu_allocation_cache.cpp
         gpu_assertion_in_kernel.cpp
         gpu_bounds_inference_failure.cpp
+        gpu_condition_lifting.cpp
         gpu_cpu_simultaneous_read.cpp
         gpu_data_flows.cpp
         gpu_different_blocks_threads_dimensions.cpp
@@ -204,6 +205,7 @@ tests(GROUPS correctness travis
         named_updates.cpp
         nested_shiftinwards.cpp
         newtons_method.cpp
+        non_nesting_extern_bounds_query.cpp
         non_vector_aligned_embeded_buffer.cpp
         obscure_image_references.cpp
         oddly_sized_output.cpp
@@ -232,6 +234,7 @@ tests(GROUPS correctness travis
         predicated_store_load.cpp
         prefetch.cpp
         print.cpp
+        print_loop_nest.cpp
         process_some_tiles.cpp
         pseudostack_shares_slots.cpp
         python_extension_gen.cpp
@@ -251,6 +254,7 @@ tests(GROUPS correctness travis
         round.cpp
         saturating_casts.cpp
         scatter.cpp
+        mux.cpp
         set_custom_trace.cpp
         shared_self_references.cpp
         shifted_image.cpp

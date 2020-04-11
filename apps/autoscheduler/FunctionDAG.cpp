@@ -412,7 +412,7 @@ void FunctionDAG::Node::loop_nest_for_region(int stage_idx, const Span *computed
             Expr max = simplify(substitute(computed_map, l.max));
             const int64_t *imin = as_const_int(min);
             const int64_t *imax = as_const_int(max);
-            internal_assert(imin && imax) << min << ", " << max << '\n';
+            internal_assert(imin && imax) << min << ", " << max << "\n";
             loop[i] = Span(*imin, *imax, false);
         }
     }
@@ -440,7 +440,7 @@ void FunctionDAG::Node::required_to_computed(const Span *required, Span *compute
             Expr max = simplify(substitute(required_map, comp.in.max));
             const int64_t *imin = as_const_int(min);
             const int64_t *imax = as_const_int(max);
-            internal_assert(imin && imax) << min << ", " << max << '\n';
+            internal_assert(imin && imax) << min << ", " << max << "\n";
             computed[i] = Span(*imin, *imax, false);
         }
     }
@@ -534,7 +534,7 @@ void FunctionDAG::Edge::expand_footprint(const Span *consumer_loop, Span *produc
                 Expr substituted = substitute(s, b.expr);
                 Expr e = simplify(substituted);
                 const int64_t *i = as_const_int(e);
-                internal_assert(i) << "Should be constant: " << b.expr << " -> " << substituted << " -> " << e << '\n';
+                internal_assert(i) << "Should be constant: " << b.expr << " -> " << substituted << " -> " << e << "\n";
                 bounds_are_constant = false;
                 return *i;
             }
@@ -570,7 +570,7 @@ FunctionDAG::FunctionDAG(const vector<Function> &outputs, const MachineParams &p
                         }
                     }
                 }
-                internal_assert(expr.defined()) << "Missing estimate for " << op->name << '\n';
+                internal_assert(expr.defined()) << "Missing estimate for " << op->name << "\n";
                 return expr;
             } else {
                 return op;
@@ -583,6 +583,7 @@ FunctionDAG::FunctionDAG(const vector<Function> &outputs, const MachineParams &p
 
     // Construct the mapping from Funcs to Nodes
     nodes.resize(order.size());
+    map<Function, Node *, Function::Compare> node_map;
     for (size_t i = 0; i < order.size(); i++) {
         Function f = env[order[order.size() - i - 1]];
         nodes[i].func = f;
@@ -825,7 +826,6 @@ FunctionDAG::FunctionDAG(const vector<Function> &outputs, const MachineParams &p
             }
 
             stage.vector_size = target.natural_vector_size(checker.narrowest_type);
-            stage.output_vector_size = target.natural_vector_size(widest_output_type);
 
             if (s == 0) {
                 node.vector_size = stage.vector_size;
@@ -1018,19 +1018,19 @@ void FunctionDAG::featurize() {
 template<typename OS>
 void FunctionDAG::dump_internal(OS &os) const {
     for (const Node &n : nodes) {
-        os << "Node: " << n.func.name() << '\n'
+        os << "Node: " << n.func.name() << "\n"
            << "  Symbolic region required: \n";
         for (const SymbolicInterval &i : n.region_required) {
-            os << "    " << i.min << ", " << i.max << '\n';
+            os << "    " << i.min << ", " << i.max << "\n";
         }
         os << "  Region computed: \n";
         for (const auto &i : n.region_computed) {
-            os << "    " << i.in.min << ", " << i.in.max << '\n';
+            os << "    " << i.in.min << ", " << i.in.max << "\n";
         }
         for (size_t i = 0; i < n.stages.size(); i++) {
             os << "  Stage " << i << ":\n";
             for (const auto &l : n.stages[i].loop) {
-                os << "    " << l.var << " " << l.min << " " << l.max << '\n';
+                os << "    " << l.var << " " << l.min << " " << l.max << "\n";
             }
             n.stages[i].features.dump(os);
         }
@@ -1041,12 +1041,12 @@ void FunctionDAG::dump_internal(OS &os) const {
            << " output: " << n.is_output << "\n";
     }
     for (const Edge &e : edges) {
-        os << "Edge: " << e.producer->func.name() << " -> " << e.consumer->name << '\n'
+        os << "Edge: " << e.producer->func.name() << " -> " << e.consumer->name << "\n"
            << "  Footprint: \n";
         int j = 0;
         for (const auto &i : e.bounds) {
-            os << "    Min " << j << ": " << i.first.expr << '\n';
-            os << "    Max " << j << ": " << i.second.expr << '\n';
+            os << "    Min " << j << ": " << i.first.expr << "\n";
+            os << "    Max " << j << ": " << i.second.expr << "\n";
             j++;
         }
 

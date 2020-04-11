@@ -3,6 +3,7 @@
 #include <array>
 #include <fstream>
 #include <future>
+#include <utility>
 
 #include "CodeGen_C.h"
 #include "CodeGen_Internal.h"
@@ -35,8 +36,7 @@ namespace Internal {
 // and in practice, it's extremely unlikely that anyone needs to rely on this
 // being pure C output (vs possibly C++).
 std::map<Output, OutputInfo> get_output_info(const Target &target) {
-    const bool is_windows_coff = target.os == Target::Windows &&
-                                 !target.has_feature(Target::MinGW);
+    const bool is_windows_coff = target.os == Target::Windows;
     std::map<Output, OutputInfo> ext = {
         {Output::assembly, {"assembly", ".s"}},
         {Output::bitcode, {"bitcode", ".bc"}},
@@ -76,7 +76,7 @@ public:
                                      const std::string &suffix,
                                      const Target &target,
                                      bool in_front = false) {
-        const char *ext = (target.os == Target::Windows && !target.has_feature(Target::MinGW)) ? ".obj" : ".o";
+        const char *ext = (target.os == Target::Windows) ? ".obj" : ".o";
         size_t slash_idx = base_path_name.rfind('/');
         size_t backslash_idx = base_path_name.rfind('\\');
         if (slash_idx == std::string::npos) {
@@ -341,7 +341,7 @@ LoweredFunc::LoweredFunc(const std::string &name,
                          Stmt body,
                          LinkageType linkage,
                          NameMangling name_mangling)
-    : name(name), args(args), body(body), linkage(linkage), name_mangling(name_mangling) {
+    : name(name), args(args), body(std::move(body)), linkage(linkage), name_mangling(name_mangling) {
 }
 
 LoweredFunc::LoweredFunc(const std::string &name,
@@ -349,9 +349,9 @@ LoweredFunc::LoweredFunc(const std::string &name,
                          Stmt body,
                          LinkageType linkage,
                          NameMangling name_mangling)
-    : name(name), body(body), linkage(linkage), name_mangling(name_mangling) {
+    : name(name), body(std::move(body)), linkage(linkage), name_mangling(name_mangling) {
     for (const Argument &i : args) {
-        this->args.push_back(LoweredArgument(i));
+        this->args.emplace_back(i);
     }
 }
 
@@ -701,7 +701,7 @@ void compile_standalone_runtime(const std::string &object_filename, Target t) {
 void compile_multitarget(const std::string &fn_name,
                          const std::map<Output, std::string> &output_files,
                          const std::vector<Target> &targets,
-                         ModuleProducer module_producer) {
+                         const ModuleProducer &module_producer) {
     validate_outputs(output_files);
 
     user_assert(!fn_name.empty()) << "Function name must be specified.\n";
@@ -757,9 +757,10 @@ void compile_multitarget(const std::string &fn_name,
             user_error << "All Targets must have matching arch-bits-os for compile_multitarget.\n";
         }
         // Some features must match across all targets.
-        static const std::array<Target::Feature, 8> must_match_features = {{
+        static const std::array<Target::Feature, 9> must_match_features = {{
             Target::ASAN,
             Target::CPlusPlusMangling,
+            Target::Debug,
             Target::JIT,
             Target::Matlab,
             Target::MSAN,
@@ -769,7 +770,7 @@ void compile_multitarget(const std::string &fn_name,
         }};
         for (auto f : must_match_features) {
             if (target.has_feature(f) != base_target.has_feature(f)) {
-                user_error << "All Targets must have feature " << f << " set identically for compile_multitarget.\n";
+                user_error << "All Targets must have feature '" << Target::feature_to_name(f) << "'' set identically for compile_multitarget.\n";
                 break;
             }
         }
@@ -813,7 +814,7 @@ void compile_multitarget(const std::string &fn_name,
         if (target != base_target) {
             std::vector<Expr> features_struct_args;
             for (int i = 0; i < kFeaturesWordCount; ++i) {
-                features_struct_args.push_back(UIntImm::make(UInt(64), cur_target_features[i]));
+                features_struct_args.emplace_back(UIntImm::make(UInt(64), cur_target_features[i]));
             }
             can_use = Call::make(Int(32), "halide_can_use_target_features",
                                  {kFeaturesWordCount, Call::make(type_of<uint64_t *>(), Call::make_struct, features_struct_args, Call::Intrinsic)},
@@ -827,7 +828,7 @@ void compile_multitarget(const std::string &fn_name,
         }
 
         wrapper_args.push_back(can_use != 0);
-        wrapper_args.push_back(sub_fn_name);
+        wrapper_args.emplace_back(sub_fn_name);
     }
 
     // If we haven't specified "no runtime", build a runtime with the base target

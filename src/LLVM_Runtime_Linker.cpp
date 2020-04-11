@@ -107,7 +107,6 @@ DECLARE_CPP_INITMOD(linux_host_cpu_count)
 DECLARE_CPP_INITMOD(linux_yield)
 DECLARE_CPP_INITMOD(matlab)
 DECLARE_CPP_INITMOD(metadata)
-DECLARE_CPP_INITMOD(mingw_math)
 DECLARE_CPP_INITMOD(module_aot_ref_count)
 DECLARE_CPP_INITMOD(module_jit_ref_count)
 DECLARE_CPP_INITMOD(msan)
@@ -338,17 +337,9 @@ llvm::DataLayout get_data_layout_for_target(Target target) {
     } else if (target.arch == Target::ARM) {
         if (target.bits == 32) {
             if (target.os == Target::IOS) {
-#if LLVM_VERSION >= 90
                 return llvm::DataLayout("e-m:o-p:32:32-Fi8-f64:32:64-v64:32:64-v128:32:128-a:0:32-n32-S32");
-#else
-                return llvm::DataLayout("e-m:o-p:32:32-f64:32:64-v64:32:64-v128:32:128-a:0:32-n32-S32");
-#endif
             } else {
-#if LLVM_VERSION >= 90
                 return llvm::DataLayout("e-m:e-p:32:32-Fi8-i64:64-v128:64:128-a:0:32-n32-S64");
-#else
-                return llvm::DataLayout("e-m:e-p:32:32-i64:64-v128:64:128-a:0:32-n32-S64");
-#endif
             }
         } else {  // 64-bit
             if (target.os == Target::IOS) {
@@ -416,11 +407,7 @@ llvm::Triple get_triple_for_target(const Target &target) {
         } else if (target.os == Target::Windows) {
             triple.setVendor(llvm::Triple::PC);
             triple.setOS(llvm::Triple::Win32);
-            if (target.has_feature(Target::MinGW)) {
-                triple.setEnvironment(llvm::Triple::GNU);
-            } else {
-                triple.setEnvironment(llvm::Triple::MSVC);
-            }
+            triple.setEnvironment(llvm::Triple::MSVC);
             if (target.has_feature(Target::JIT)) {
                 // Use ELF for jitting
                 triple.setObjectFormat(llvm::Triple::ELF);
@@ -584,14 +571,6 @@ void link_modules(std::vector<std::unique_ptr<llvm::Module>> &modules, Target t,
     // in this array.
     vector<string> retain = {"__stack_chk_guard",
                              "__stack_chk_fail"};
-
-    if (t.has_feature(Target::MinGW)) {
-        retain.insert(retain.end(),
-                      {"sincos", "sincosf",
-                       "asinh", "asinhf",
-                       "acosh", "acoshf",
-                       "atanh", "atanhf"});
-    }
 
     // Enumerate the global variables.
     for (auto &gv : modules[0]->globals()) {
@@ -864,9 +843,6 @@ std::unique_ptr<llvm::Module> get_initial_module_for_target(Target t, llvm::LLVM
                     modules.push_back(get_initmod_windows_threads(c, bits_64, debug));
                 }
                 modules.push_back(get_initmod_windows_get_symbol(c, bits_64, debug));
-                if (t.has_feature(Target::MinGW)) {
-                    modules.push_back(get_initmod_mingw_math(c, bits_64, debug));
-                }
             } else if (t.os == Target::IOS) {
                 modules.push_back(get_initmod_posix_allocator(c, bits_64, debug));
                 modules.push_back(get_initmod_posix_error_handler(c, bits_64, debug));

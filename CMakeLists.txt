@@ -162,8 +162,8 @@ check_tool_exists(clang "${CLANG}")
 if (NOT "${LLVM_VERSION}" MATCHES "^[0-9]+$")
   message(FATAL_ERROR "LLVM_VERSION not specified correctly, must be LLVM version times 10.")
 endif()
-if (LLVM_VERSION LESS 80)
-  message(FATAL_ERROR "LLVM version must be 8.0 or newer")
+if (LLVM_VERSION LESS 90)
+  message(FATAL_ERROR "LLVM version must be 9.0 or newer")
 endif()
 if (LLVM_VERSION GREATER 110)
   message(FATAL_ERROR "LLVM version must be 11.0 or older")
@@ -273,6 +273,7 @@ if (NOT MSVC)
           -Wignored-qualifiers
           $<$<COMPILE_LANGUAGE:CXX>:-Woverloaded-virtual>
           $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER:$<CXX_COMPILER_VERSION>,5.1>>:-Wsuggest-override>
+          $<$<CXX_COMPILER_ID:GNU>:-Wno-psabi>
   )
   if (WARNINGS_AS_ERRORS)
     add_compile_options(-Werror)
@@ -416,6 +417,20 @@ if (WITH_UTILS)
   add_subdirectory(util)
 else()
   message(STATUS "Building utils disabled")
+endif()
+
+# Default Python bindings to OFF for 32-bit Windows, ON everywhere else
+if (MSVC AND "${CMAKE_SIZEOF_VOID_P}" STREQUAL "4")
+  option(WITH_PYTHON_BINDINGS "Build Python bindings" OFF)
+else()
+  option(WITH_PYTHON_BINDINGS "Build Python bindings" ON)
+endif()
+
+if (WITH_PYTHON_BINDINGS)
+  message(STATUS "Building Python bindings enabled")
+  add_subdirectory(python_bindings)
+else()
+  message(STATUS "Building Python bindings disabled")
 endif()
 
 # ------------------------------------------------
