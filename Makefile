@@ -55,7 +55,7 @@ EMCC ?= emcc
 # (Node could be used instead.)
 WASM_SHELL ?= d8
 PREFIX ?= /home/zhangkun/LocalInstall/halide
-LLVM_CONFIG ?= llvm-config
+LLVM_CONFIG ?= /home/zhangkun/LocalInstall/llvm/latest/bin/llvm-config
 LLVM_COMPONENTS= $(shell $(LLVM_CONFIG) --components)
 LLVM_VERSION = $(shell $(LLVM_CONFIG) --version | sed 's/\([0-9][0-9]*\)\.\([0-9]\).*/\1.\2/')
 
